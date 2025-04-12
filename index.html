@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Tree</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css?family=Raleway:400");
+
+
+        .box {
+            font-size: 3vw;
+            margin: max(1rem, 3vw);
+            border: 0.35rem solid;
+            padding: 3vw;
+            border-image: conic-gradient(from var(--angle),
+                    var(--c2),
+                    var(--c1) 0.1turn,
+                    var(--c1) 0.15turn,
+                    var(--c2) 0.25turn) 30;
+        }
+
+        .box:nth-child(2) {
+            border-image: radial-gradient(ellipse at var(--gradX) var(--gradY),
+                    var(--c1),
+                    var(--c1) 10%,
+                    var(--c2) 40%) 30;
+        }
+
+        /* Add these classes for hover effect */
+        .animate-rotate {
+            animation: borderRotate var(--d) linear infinite forwards;
+        }
+
+        .animate-radial {
+            animation: borderRadial var(--d) linear infinite forwards;
+        }
+
+        .tree__container__branch {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        .tree__container__step__card {
+            text-align: center;
+            margin: 20px;
+        }
+
+        .tree__container__step__card p {
+            padding: 10px;
+            box-shadow: 0 0 4px 1px rgba(121, 121, 121, 0.3);
+            border-radius: 4px;
+            text-align: center;
+            width: 150px;
+            display: inline-block;
+            margin: 0 !important;
+            background-color: white;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        #tree__svg-container {
+            z-index: -1;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .tree__container__step {
+            flex: 1 1 0;
+            width: auto;
+            padding: 0;
+        }
+
+        .tree__container__step__card__p {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tree__container__step__card__p:not(.root-node) {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .tree__container__step__card__p.active {
+            background-color: #2199e8;
+            color: white;
+            box-shadow: 0 0 10px 2px rgba(33, 153, 232, 0.5);
+            z-index: 10;
+        }
+
+        .tree__container__step__card__p.child-active {
+            background-color: #8dc9f5;
+            color: white;
+            box-shadow: 0 0 0 3px #8dc9f5;
+        }
+
+        path {
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+            stroke: #f3eeee;
+            stroke-width: 5px;
+
+            border: 2px solid black;
+        }
+
+        path.highlighted {
+            stroke: #2199e8;
+            stroke-width: 6px;
+
+
+            border: 2px solid black;
+        }
+
+        .tree__container__step__card__p.child-active {
+            pointer-events: auto !important;
+            opacity: 1 !important;
+            background-color: #8dc9f5;
+            color: white;
+            box-shadow: 0 0 0 3px #8dc9f5;
+            cursor: pointer;
+            transform: scale(1);
+        }
+
+
+        .tree__container__step__card__p.root-node:not(.active) {
+            box-shadow: 0 0 4px 1px rgba(121, 121, 121, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="my_tree"></div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const boxes = document.querySelectorAll(".box");
+
+            boxes.forEach((box, index) => {
+                box.addEventListener("mouseenter", () => {
+                    if (index === 1) {
+                        box.classList.add("animate-radial");
+                    } else {
+                        box.classList.add("animate-rotate");
+                    }
+                });
+
+                box.addEventListener("mouseleave", () => {
+                    box.classList.remove("animate-rotate", "animate-radial");
+                    // Optionally reset custom properties
+                    box.style.setProperty('--angle', '90deg');
+                    box.style.setProperty('--gradX', '50%');
+                    box.style.setProperty('--gradY', '0%');
+                });
+            });
+        });
+        const Data = {
+            treeid: "Root",
+            skillset: [
+                {
+                    id: "1",
+                    text: "Child.1",
+                    children: [
+                        {
+                            id: "1.1",
+                            text: "Child.1.1",
+                            children: []
+                        },
+                        {
+                            id: "1.2",
+                            text: "Child.1.2",
+                            children: [
+                                {
+                                    id: "1.2.1",
+                                    text: "Child.1.2.1",
+                                    children: []
+                                },
+                                {
+                                    id: "1.2.2",
+                                    text: "Child.1.2.2",
+                                    children: []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "2",
+                    text: "Child.2",
+                    children: [
+                        {
+                            id: "2.1",
+                            text: "Child.2.1",
+                            children: [
+                                {
+                                    id: "2.1.1",
+                                    text: "Child.2.1.1",
+                                    children: []
+                                },
+                                {
+                                    id: "2.1.2",
+                                    text: "Child.2.1.2",
+                                    children: [
+                                        {
+                                            id: "2.1.2.1",
+                                            text: "Child.2.1.2.1",
+                                            children: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "2.2",
+                            text: "Child.2.2",
+                            children: []
+                        }
+                    ]
+                },
+                {
+                    id: "3",
+                    text: "Child.3",
+                    children: [
+                        {
+                            id: "3.1",
+                            text: "Child.3.1",
+                            children: []
+                        }
+                    ]
+                }
+            ]
+        };
+
+        let pathNumber = 1;
+        let allLinks = [];
+        let cardsCountLastRow = 0;
+        const CARD_WIDTH_FOR_CONTAINER = 250;
+        let strokeWidth = '5px';
+        let strokeColor = '#000000';
+
+        class TreeNode {
+            constructor(id, text, parent = null) {
+                this.id = id;
+                this.text = text;
+                this.parent = parent;
+                this.children = [];
+                this.isActive = false;
+                this.isChildActive = false;
+                this.element = null;
+                this.paths = [];
+            }
+
+            toggleActive() {
+                this.isActive = !this.isActive;
+
+                if (!this.isActive) {
+
+                    this.deactivateAllChildren();
+                    this.resetAllPaths();
+                } else {
+
+                    this.highlightChildPaths();
+                }
+
+                this.updateElement();
+                return this.isActive;
+            }
+
+            setChildActive(isActive) {
+                this.isChildActive = isActive;
+                this.updateElement();
+            }
+
+            deactivateAllChildren() {
+                this.children.forEach(child => {
+                    child.isActive = false;
+                    child.isChildActive = false;
+                    child.updateElement();
+                    child.resetAllPaths();
+                    child.deactivateAllChildren();
+                });
+            }
+
+            highlightChildPaths() {
+                this.paths.forEach(path => {
+                    path.classList.add('highlighted');
+                    path.style.stroke = '#2199e8';
+                    path.style.strokeWidth = '6px';
+                });
+            }
+
+            resetAllPaths() {
+                this.paths.forEach(path => {
+                    path.classList.remove('highlighted');
+                    path.style.stroke = strokeColor;
+                    path.style.strokeWidth = strokeWidth;
+                });
+            }
+
+            updateElement() {
+                if (!this.element) return;
+
+                this.element.className = 'tree__container__step__card__p';
+
+                if (this.parent === null) {
+                    this.element.classList.add('root-node');
+                    this.element.style.pointerEvents = 'auto';
+                    this.element.style.opacity = '1';
+                }
+
+                if (this.isActive) {
+                    this.element.classList.add('active');
+                } else if (this.isChildActive) {
+                    this.element.classList.add('child-active');
+                }
+
+                if (this.parent !== null) {
+                    this.element.style.pointerEvents = this.isActive || this.isChildActive ? 'auto' : 'none';
+                    this.element.style.opacity = this.isActive || this.isChildActive ? '1' : '0.5';
+                }
+            }
+
+            createElement() {
+                const p = document.createElement('p');
+                p.id = `card_${this.id}`;
+                p.textContent = this.text;
+                this.element = p;
+                this.updateElement();
+
+                p.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.handleClick();
+                });
+
+                return p;
+            }
+
+            handleClick() {
+                const wasActive = this.toggleActive();
+
+                if (wasActive) {
+                    this.children.forEach(child => {
+                        child.setChildActive(true);
+                    });
+                }
+            }
+        }
+
+        function buildTreeStructure(treeData, parent = null) {
+            const node = new TreeNode(
+                treeData.id || treeData.treeid,
+                treeData.text || treeData.treeid,
+                parent
+            );
+
+            if (treeData.children || treeData.skillset) {
+                const children = treeData.children || treeData.skillset;
+                node.children = children.map(child => buildTreeStructure(child, node));
+            }
+
+            return node;
+        }
+
+        function treeMaker(tree, params) {
+            const container = document.getElementById(params.id);
+            container.innerHTML = '';
+
+            if (params.link_width !== undefined) strokeWidth = params.link_width;
+            if (params.link_color !== undefined) strokeColor = params.link_color;
+
+            pathNumber = 1;
+            allLinks = [];
+
+            const svgDiv = document.createElement('div');
+            svgDiv.id = 'tree__svg-container';
+            container.appendChild(svgDiv);
+
+            const svgContainer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svgContainer.id = 'tree__svg-container__svg';
+            svgDiv.appendChild(svgContainer);
+
+            const treeContainer = document.createElement('div');
+            treeContainer.id = 'tree__container';
+            container.appendChild(treeContainer);
+
+            const rootTreeNode = buildTreeStructure(tree);
+
+            const card = document.createElement('div');
+            card.classList = 'tree__container__step__card';
+            card.id = 'tree__container__step__card__first';
+            treeContainer.appendChild(card);
+            card.appendChild(rootTreeNode.createElement());
+
+            renderChildren(rootTreeNode, 'tree__container__step__card__first');
+            treeContainer.style.width = `${cardsCountLastRow * CARD_WIDTH_FOR_CONTAINER}px`;
+
+            connectCard();
+
+            window.onresize = function () {
+                svgDiv.setAttribute('height', '0');
+                svgDiv.setAttribute('width', '0');
+                connectCard();
+            };
+        }
+
+        function renderChildren(treeNode, from) {
+            if (!treeNode.children.length) return;
+
+            const svgContainer = document.getElementById('tree__svg-container__svg');
+            const treeContainer = document.createElement('div');
+            treeContainer.classList.add('tree__container__branch', `from_${from}`);
+            document.getElementById(from).after(treeContainer);
+
+            for (const childNode of treeNode.children) {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'tree__container__step';
+                treeContainer.appendChild(stepDiv);
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'tree__container__step__card';
+                cardDiv.id = childNode.id;
+                stepDiv.appendChild(cardDiv);
+
+                cardDiv.appendChild(childNode.createElement());
+
+
+                const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                newPath.id = "path" + pathNumber;
+                newPath.setAttribute('stroke', strokeColor);
+                newPath.setAttribute('fill', 'none');
+                newPath.setAttribute('stroke-width', strokeWidth);
+                newPath.setAttribute('data-from', from === 'tree__container__step__card__first' ? 'Root' : from);
+                newPath.setAttribute('data-to', childNode.id);
+                svgContainer.appendChild(newPath);
+                treeNode.paths.push(newPath);
+                allLinks.push(['path' + pathNumber, from, childNode.id]);
+                pathNumber++;
+
+                if (childNode.children.length > 0) {
+                    renderChildren(childNode, childNode.id);
+                } else {
+                    cardsCountLastRow++;
+                }
+            }
+        }
+
+        function handleNodeClick(clickedCard) {
+            const nodeId = clickedCard.id.replace('card_', '');
+
+            const shouldActivate = nodeState.setActive(nodeId);
+
+            if (shouldActivate) {
+                activateNode(clickedCard, nodeId);
+            } else {
+                deactivateNode(clickedCard, nodeId);
+            }
+        }
+
+        function activateNode(node, nodeId) {
+            resetVisualStates();
+            document.getElementById(nodeId).classList.add("box");
+            node.classList.add('active');
+            animateNodeActivation(node);
+
+            const nodeData = findNodeInTree(rawTree, nodeId);
+            if (nodeData?.children) {
+                activateChildren(nodeData.children, nodeId);
+            }
+        }
+
+        function deactivateNode(node, nodeId) {
+            node.classList.remove('active');
+            animateNodeDeactivation(node);
+            document.getElementById(nodeId).classList.remove("box");
+
+            const nodeData = findNodeInTree(rawTree, nodeId);
+            if (nodeData?.children) {
+                deactivateChildrenRecursively(nodeData);
+            }
+        }
+
+        function activateChildren(children, parentId) {
+            children.forEach(child => {
+                
+
+                const childCard = document.getElementById(`card_${child.id}`);
+                document.getElementById(child.id).classList.add("box");
+                if (childCard) {
+                    childCard.classList.add('child-active');
+                    childCard.style.pointerEvents = 'auto';
+                    childCard.style.opacity = '1';
+
+                    const path = document.querySelector(`path[data-from="${parentId}"][data-to="${child.id}"]`);
+                    if (path) {
+                        animatePathActivation(path);
+                    }
+
+                    childCard.onclick = (e) => {
+                        e.stopPropagation();
+                        handleNodeClick(e.target);
+                    };
+                }
+            });
+        }
+
+        function deactivateChildrenRecursively(parentNode) {
+            parentNode.children.forEach(child => {
+                const childCard = document.getElementById(`card_${child.id}`);
+                document.getElementById(child.id).classList.remove("box");
+
+                if (childCard) {
+                    childCard.classList.remove('child-active');
+                    childCard.style.pointerEvents = 'none';
+                    childCard.style.opacity = '0.5';
+
+                    const path = document.querySelector(`path[data-from="${parentNode.id}"][data-to="${child.id}"]`);
+                    if (path) {
+                        path.style.stroke = strokeColor;
+                        path.style.strokeWidth = strokeWidth;
+                        path.classList.remove('highlighted');
+                    }
+
+                    if (child.children) {
+                        deactivateChildrenRecursively(child);
+                    }
+                }
+            });
+        }
+
+        function resetVisualStates() {
+            document.querySelectorAll('.tree__container__step__card__p').forEach(card => {
+                if (!card.classList.contains('root-node')) {
+                    card.classList.remove('active', 'child-active');
+                    card.style.pointerEvents = 'none';
+                    card.style.opacity = '0.5';
+                }
+            });
+
+            document.querySelectorAll('path').forEach(path => {
+                path.style.stroke = strokeColor;
+                path.style.strokeWidth = strokeWidth;
+                path.classList.remove('highlighted');
+            });
+        }
+
+        function animateNodeActivation(node) {
+            node.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.1)' },
+                { transform: 'scale(1.05)' }
+            ], {
+                duration: 300,
+                easing: 'ease-out'
+            }).onfinish = () => {
+                node.style.transform = 'scale(1.05)';
+            };
+
+            node.animate([
+                { backgroundColor: 'white', color: 'black' },
+                { backgroundColor: '#2199e8', color: 'white' }
+            ], {
+                duration: 300,
+                fill: 'forwards'
+            });
+        }
+
+        function animateNodeDeactivation(node) {
+            node.animate([
+                { backgroundColor: '#2199e8', color: 'white' },
+                { backgroundColor: 'white', color: 'black' }
+            ], {
+                duration: 300,
+                fill: 'forwards'
+            });
+        }
+
+        function animatePathActivation(path) {
+            path.classList.add('highlighted');
+
+            const length = path.getTotalLength();
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
+
+            path.animate([
+                { strokeDashoffset: length },
+                { strokeDashoffset: 0 }
+            ], {
+                duration: 500,
+                easing: 'ease-out'
+            }).onfinish = () => {
+                path.style.strokeDasharray = 'none';
+                path.style.strokeDashoffset = '0';
+            };
+
+            path.animate([
+                { stroke: strokeColor, strokeWidth: strokeWidth },
+                { stroke: '#2199e8', strokeWidth: '6px' }
+            ], {
+                duration: 300,
+                fill: 'forwards'
+            });
+        }
+
+        function findNodeInTree(tree, nodeId) {
+            if (tree.treeid === nodeId) return { id: tree.treeid, children: tree.skillset };
+
+            function search(nodes) {
+                for (let node of nodes) {
+                    if (node.id === nodeId) return node;
+                    if (node.children && node.children.length > 0) {
+                        const found = search(node.children);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+
+            return search(tree.skillset);
+        }
+
+        function iterate(nodes, start, from) {
+            const svgContainer = document.getElementById('tree__svg-container__svg');
+            const treeContainer = document.createElement('div');
+            treeContainer.classList.add('tree__container__branch', `from_${from}`);
+            document.getElementById(from).after(treeContainer);
+
+            for (const node of nodes) {
+                const textCard = node.text || node.id;
+
+                if (!document.getElementById(`card_${node.id}`)) {
+                    treeContainer.innerHTML += `<div class="tree__container__step"><div class="tree__container__step__card" id="${node.id}"><p id="card_${node.id}" class="tree__container__step__card__p">${textCard}</p></div></div>`;
+                }
+
+                if ((from && !start) || start) {
+                    const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    newPath.id = "path" + pathNumber;
+                    newPath.setAttribute('stroke', strokeColor);
+                    newPath.setAttribute('fill', 'none');
+                    newPath.setAttribute('stroke-width', strokeWidth);
+                    newPath.setAttribute('data-from', from ? from.replace('tree__container__step__card__first', 'Root') : 'Root');
+                    newPath.setAttribute('data-to', node.id);
+                    svgContainer.appendChild(newPath);
+                    allLinks.push(['path' + pathNumber, from ? from : 'tree__container__step__card__first', node.id]);
+                    pathNumber++;
+                }
+
+                if (node.children && node.children.length > 0) {
+                    iterate(node.children, false, node.id);
+                } else {
+                    cardsCountLastRow++;
+                }
+            }
+        }
+
+        function connectCard() {
+            const svg = document.getElementById('tree__svg-container__svg');
+            for (let i = 0; allLinks.length > i; i++) {
+                connectElements(svg, document.getElementById(allLinks[i][0]), document.getElementById(allLinks[i][1]), document.getElementById(allLinks[i][2]));
+            }
+        }
+
+        function signum(x) {
+            return (x < 0) ? -1 : 1;
+        }
+
+        function absolute(x) {
+            return (x < 0) ? -x : x;
+        }
+
+        function drawPath(svg, path, startX, startY, endX, endY) {
+            const stroke = parseFloat(path.getAttribute("stroke-width"));
+            if (svg.getAttribute("height") < endY) svg.setAttribute("height", endY);
+            if (svg.getAttribute("width") < (startX + stroke)) svg.setAttribute("width", (startX + stroke));
+            if (svg.getAttribute("width") < (endX + stroke)) svg.setAttribute("width", (endX + stroke));
+
+            const deltaX = (endX - startX) * 0.15;
+            const deltaY = (endY - startY) * 0.15;
+            const delta = deltaY < absolute(deltaX) ? deltaY : absolute(deltaX);
+
+            let arc1 = 0;
+            let arc2 = 1;
+            if (startX > endX) {
+                arc1 = 1;
+                arc2 = 0;
+            }
+
+            path.setAttribute("d",
+                `M${startX} ${startY} V${startY + delta} A${delta} ${delta} 0 0 ${arc1} ${startX + delta * signum(deltaX)} ${startY + 2 * delta} ` +
+                `H${endX - delta * signum(deltaX)} A${delta} ${delta} 0 0 ${arc2} ${endX} ${startY + 3 * delta} V${endY}`
+            );
+        }
+
+        function connectElements(svg, path, startElem, endElem) {
+            const svgContainer = document.getElementById('tree__svg-container');
+
+            if (startElem.offsetTop > endElem.offsetTop) {
+                const temp = startElem;
+                startElem = endElem;
+                endElem = temp;
+            }
+
+            const svgTop = svgContainer.offsetTop;
+            const svgLeft = svgContainer.offsetLeft;
+
+            const startX = startElem.offsetLeft + 0.5 * startElem.offsetWidth - svgLeft;
+            const startY = startElem.offsetTop + startElem.offsetHeight - svgTop;
+
+            const endX = endElem.offsetLeft + 0.5 * endElem.offsetWidth - svgLeft;
+            const endY = endElem.offsetTop - svgTop;
+
+            drawPath(svg, path, startX, startY, endX, endY);
+        }
+
+        treeMaker(Data, {
+            id: 'my_tree',
+            card_click: function (element) {
+                console.log('Clicked:', element.textContent);
+            },
+            link_width: '5px',
+            link_color: '#000000'
+        });
+    </script>
+</body>
+
+</html>
