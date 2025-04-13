@@ -7,33 +7,41 @@
     <style>
         @import url("https://fonts.googleapis.com/css?family=Raleway:400");
 
-
-        .box {
-            font-size: 3vw;
-            margin: max(1rem, 3vw);
-            border: 0.35rem solid;
-            padding: 3vw;
-            border-image: conic-gradient(from var(--angle),
-                    var(--c2),
-                    var(--c1) 0.1turn,
-                    var(--c1) 0.15turn,
-                    var(--c2) 0.25turn) 30;
+        body {
+            font-family: "Raleway", sans-serif;
+            background-color: #474545;
+            margin: 0;
+            padding: 0;
+            /* overflow: hidden; */
         }
 
-        .box:nth-child(2) {
-            border-image: radial-gradient(ellipse at var(--gradX) var(--gradY),
-                    var(--c1),
-                    var(--c1) 10%,
-                    var(--c2) 40%) 30;
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
         }
 
-        /* Add these classes for hover effect */
-        .animate-rotate {
-            animation: borderRotate var(--d) linear infinite forwards;
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-weight: bold;
         }
 
-        .animate-radial {
-            animation: borderRadial var(--d) linear infinite forwards;
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            height: 20px;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
         }
 
         .tree__container__branch {
@@ -49,13 +57,13 @@
 
         .tree__container__step__card p {
             padding: 10px;
-            box-shadow: 0 0 4px 1px rgba(121, 121, 121, 0.3);
+            box-shadow: 0 0 4px 1px rgba(241, 240, 240, 0.3);
             border-radius: 4px;
             text-align: center;
             width: 150px;
             display: inline-block;
             margin: 0 !important;
-            background-color: white;
+            background-color: rgb(172, 179, 177);
             transition: all 0.3s ease;
             position: relative;
         }
@@ -75,87 +83,109 @@
             padding: 0;
         }
 
-        .tree__container__step__card__p {
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
 
         .tree__container__step__card__p:not(.root-node) {
             pointer-events: none;
             opacity: 0.5;
         }
 
-        .tree__container__step__card__p.active {
-            background-color: #2199e8;
-            color: white;
-            box-shadow: 0 0 10px 2px rgba(33, 153, 232, 0.5);
-            z-index: 10;
-        }
-
-        .tree__container__step__card__p.child-active {
-            background-color: #8dc9f5;
-            color: white;
-            box-shadow: 0 0 0 3px #8dc9f5;
-        }
-
-        path {
-            transition: stroke 0.3s ease, stroke-width 0.3s ease;
-            stroke: #f3eeee;
-            stroke-width: 5px;
-
-            border: 2px solid black;
-        }
-
-        path.highlighted {
-            stroke: #2199e8;
-            stroke-width: 6px;
-
-
-            border: 2px solid black;
-        }
-
-        .tree__container__step__card__p.child-active {
-            pointer-events: auto !important;
-            opacity: 1 !important;
-            background-color: #8dc9f5;
-            color: white;
-            box-shadow: 0 0 0 3px #8dc9f5;
-            cursor: pointer;
-            transform: scale(1);
-        }
 
 
         .tree__container__step__card__p.root-node:not(.active) {
             box-shadow: 0 0 4px 1px rgba(121, 121, 121, 0.3);
         }
+
+        .tree__container__step__card__p.child-active:hover,
+        .tree__container__step__card__p.active:hover {
+            background: linear-gradient(45deg, #218acf, #86419b) !important;
+            animation: nodeHover 2s ease infinite;
+        }
+
+        .tree__container__step__card__p {
+            background-color: #666 !important;
+            color: #fff;
+            cursor: default;
+        }
+
+        .tree__container__step__card__p.child-active {
+            background-color: #8dc9f5 !important;
+            /* Light blue for clickable */
+            color: #333 !important;
+            cursor: pointer;
+        }
+
+        .tree__container__step__card__p.active {
+            background-color: #2199e8 !important;
+            /* Red color for clicked */
+            color: #fff !important;
+        }
+
+        .tree__container__step__card__p.root-node {
+            background-color: #2199e8 !important;
+            /* Blue for root node */
+            color: #fff !important;
+        }
+
+        .tree__container__step__card__p.child-active:hover,
+        .tree__container__step__card__p.active:hover {
+            background: linear-gradient(45deg, #218acf, #86419b) !important;
+            animation: nodeHover 2s ease infinite;
+        }
+
+        @keyframes nodeHover {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        path {
+            stroke: white;
+            stroke-width: 5px;
+            stroke-linecap: round;
+            fill: none;
+            transition: stroke 0.3s ease;
+        }
+
+        path.highlighted {
+            stroke: #2199e8;
+            stroke-width: 5px;
+            animation: drawPath 1.5s linear forwards;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 0;
+        }
+
+        @keyframes drawPath {
+            from {
+                stroke-dashoffset: 1000;
+            }
+
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
     </style>
+
 </head>
 
 <body>
+    <h3>Paste Your JSON Tree Data</h3>
+    <textarea id="treeInput" placeholder='Paste JSON like {"treeid": "...", "skillset": [...]}'></textarea>
+    <br>
+    <button id="assignData">Assign to Data</button>
+    <div id="message"></div>
+
     <div id="my_tree"></div>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const boxes = document.querySelectorAll(".box");
 
-            boxes.forEach((box, index) => {
-                box.addEventListener("mouseenter", () => {
-                    if (index === 1) {
-                        box.classList.add("animate-radial");
-                    } else {
-                        box.classList.add("animate-rotate");
-                    }
-                });
-
-                box.addEventListener("mouseleave", () => {
-                    box.classList.remove("animate-rotate", "animate-radial");
-                    // Optionally reset custom properties
-                    box.style.setProperty('--angle', '90deg');
-                    box.style.setProperty('--gradX', '50%');
-                    box.style.setProperty('--gradY', '0%');
-                });
-            });
-        });
-        const Data = {
+        var Data = {
             treeid: "Root",
             skillset: [
                 {
@@ -231,7 +261,55 @@
                 }
             ]
         };
+        function isValidSkillsetArray(skillset) {
+            return Array.isArray(skillset) && skillset.every(node => isValidNode(node));
+        }
 
+        function isValidNode(node) {
+            return (
+                typeof node.id === 'string' &&
+                typeof node.text === 'string' &&
+                Array.isArray(node.children) &&
+                node.children.every(child => isValidNode(child))
+            );
+        }
+
+        document.getElementById("assignData").addEventListener("click", () => {
+            const input = document.getElementById("treeInput").value;
+            const message = document.getElementById("message");
+            message.innerHTML = "";
+            message.className = "";
+
+            try {
+                const parsed = JSON.parse(input);
+
+                if (typeof parsed.treeid !== "string") {
+                    throw new Error("Missing or invalid 'treeid' (must be a string).");
+                }
+
+                if (!parsed.skillset || !isValidSkillsetArray(parsed.skillset)) {
+                    throw new Error(
+                        "Invalid 'skillset'. It must be an array of nodes with 'id', 'text', and 'children'."
+                    );
+                }
+
+                Data = parsed;
+                message.textContent = "✅ Data assigned successfully!";
+                message.className = "success";
+                treeMaker(Data, {
+                    id: 'my_tree',
+                    card_click: function (element) {
+                        console.log('Clicked:', element.textContent);
+                    },
+                    link_width: '5px',
+                    link_color: '#000000'
+                });
+                console.log("Assigned Data:", Data); // For developer verification
+            } catch (err) {
+                message.textContent = `❌ Error: ${err.message}`;
+                message.className = "error";
+            }
+        });
         let pathNumber = 1;
         let allLinks = [];
         let cardsCountLastRow = 0;
@@ -338,7 +416,6 @@
 
             handleClick() {
                 const wasActive = this.toggleActive();
-
                 if (wasActive) {
                     this.children.forEach(child => {
                         child.setChildActive(true);
@@ -482,7 +559,7 @@
 
         function activateChildren(children, parentId) {
             children.forEach(child => {
-                
+
 
                 const childCard = document.getElementById(`card_${child.id}`);
                 document.getElementById(child.id).classList.add("box");
@@ -557,7 +634,7 @@
             };
 
             node.animate([
-                { backgroundColor: 'white', color: 'black' },
+                { backgroundColor: 'Blue', color: 'black' },
                 { backgroundColor: '#2199e8', color: 'white' }
             ], {
                 duration: 300,
@@ -568,7 +645,7 @@
         function animateNodeDeactivation(node) {
             node.animate([
                 { backgroundColor: '#2199e8', color: 'white' },
-                { backgroundColor: 'white', color: 'black' }
+                { backgroundColor: 'Blue', color: 'black' }
             ], {
                 duration: 300,
                 fill: 'forwards'
