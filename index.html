@@ -5,16 +5,36 @@
     <meta charset="UTF-8">
     <title>Interactive Tree</title>
     <style>
-        @import url("https://fonts.googleapis.com/css?family=Raleway:400");
-
-        body {
+       body {
             font-family: "Raleway", sans-serif;
             background-color: #474545;
             margin: 0;
             padding: 0;
-            /* overflow: hidden; */
+        }
+        #tree-viewport {
+            width: 100%;
+            height: 80vh;
+            overflow: hidden;
+            border: 1px solid #666;
+            position: relative;
+            margin: 20px 0;
+            cursor: grab;
+            touch-action: none; /* Important for mobile zoom */
+        }
+        #tree-viewport:active {
+            cursor: grabbing;
+        }
+        #tree-transform-container {
+            transform-origin: 0 0;
+            transition: transform 0.3s ease-out;
         }
 
+        /* Modify existing tree container style */
+        #tree__container {
+            position: relative;
+            min-width: 100%;
+            display: inline-block;
+        }
         textarea {
             width: 100%;
             height: 300px;
@@ -36,13 +56,8 @@
             height: 20px;
         }
 
-        .error {
-            color: red;
-        }
-
-        .success {
-            color: green;
-        }
+        .error { color: red; }
+        .success { color: green; }
 
         .tree__container__branch {
             display: flex;
@@ -59,11 +74,12 @@
             padding: 10px;
             box-shadow: 0 0 4px 1px rgba(241, 240, 240, 0.3);
             border-radius: 4px;
-            text-align: center;
             width: 150px;
             display: inline-block;
             margin: 0 !important;
-            background-color: rgb(172, 179, 177);
+            background-color: #666;
+            color: #fff;
+            cursor: default;
             transition: all 0.3s ease;
             position: relative;
         }
@@ -79,77 +95,32 @@
 
         .tree__container__step {
             flex: 1 1 0;
-            width: auto;
             padding: 0;
         }
-
 
         .tree__container__step__card__p:not(.root-node) {
             pointer-events: none;
             opacity: 0.5;
         }
 
-
-
-        .tree__container__step__card__p.root-node:not(.active) {
-            box-shadow: 0 0 4px 1px rgba(121, 121, 121, 0.3);
-        }
-
-        .tree__container__step__card__p.child-active:hover,
-        .tree__container__step__card__p.active:hover {
-            background: linear-gradient(45deg, #218acf, #86419b) !important;
-            animation: nodeHover 2s ease infinite;
-        }
-
-        .tree__container__step__card__p {
-            background-color: #666 !important;
-            color: #fff;
-            cursor: default;
+        .tree__container__step__card__p.root-node {
+            background-color: #2199e8 !important;
+            color: #fff !important;
         }
 
         .tree__container__step__card__p.child-active {
             background-color: #8dc9f5 !important;
-            /* Light blue for clickable */
             color: #333 !important;
             cursor: pointer;
         }
 
         .tree__container__step__card__p.active {
             background-color: #2199e8 !important;
-            /* Red color for clicked */
-            color: #fff !important;
-        }
-
-        .tree__container__step__card__p.root-node {
-            background-color: #2199e8 !important;
-            /* Blue for root node */
-            color: #fff !important;
-        }
-
-        .tree__container__step__card__p.child-active:hover,
-        .tree__container__step__card__p.active:hover {
-            background: linear-gradient(45deg, #218acf, #86419b) !important;
-            animation: nodeHover 2s ease infinite;
-        }
-
-        @keyframes nodeHover {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
         }
 
         path {
             stroke: white;
             stroke-width: 5px;
-            stroke-linecap: round;
             fill: none;
             transition: stroke 0.3s ease;
         }
@@ -163,26 +134,30 @@
         }
 
         @keyframes drawPath {
-            from {
-                stroke-dashoffset: 1000;
-            }
-
-            to {
-                stroke-dashoffset: 0;
-            }
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+        }
+        .controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
         }
     </style>
 
 </head>
 
 <body>
-    <h3>Paste Your JSON Tree Data</h3>
-    <textarea id="treeInput" placeholder='Paste JSON like {"treeid": "...", "skillset": [...]}'></textarea>
-    <br>
-    <button id="assignData">Assign to Data</button>
-    <div id="message"></div>
 
     <div id="my_tree"></div>
+    <div class="controls">
+        <button onclick="resetZoom()">Reset Zoom</button>
+        <br>
+        <button onclick="toggleZoomMode()">Toggle Fit Mode</button>
+    </div>
     <script>
 
         var Data = {
@@ -219,28 +194,7 @@
                     id: "2",
                     text: "Child.2",
                     children: [
-                        {
-                            id: "2.1",
-                            text: "Child.2.1",
-                            children: [
-                                {
-                                    id: "2.1.1",
-                                    text: "Child.2.1.1",
-                                    children: []
-                                },
-                                {
-                                    id: "2.1.2",
-                                    text: "Child.2.1.2",
-                                    children: [
-                                        {
-                                            id: "2.1.2.1",
-                                            text: "Child.2.1.2.1",
-                                            children: []
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
+
                         {
                             id: "2.2",
                             text: "Child.2.2",
@@ -264,58 +218,20 @@
         function isValidSkillsetArray(skillset) {
             return Array.isArray(skillset) && skillset.every(node => isValidNode(node));
         }
-
-        function isValidNode(node) {
-            return (
-                typeof node.id === 'string' &&
-                typeof node.text === 'string' &&
-                Array.isArray(node.children) &&
-                node.children.every(child => isValidNode(child))
-            );
-        }
-
-        document.getElementById("assignData").addEventListener("click", () => {
-            const input = document.getElementById("treeInput").value;
-            const message = document.getElementById("message");
-            message.innerHTML = "";
-            message.className = "";
-
-            try {
-                const parsed = JSON.parse(input);
-
-                if (typeof parsed.treeid !== "string") {
-                    throw new Error("Missing or invalid 'treeid' (must be a string).");
-                }
-
-                if (!parsed.skillset || !isValidSkillsetArray(parsed.skillset)) {
-                    throw new Error(
-                        "Invalid 'skillset'. It must be an array of nodes with 'id', 'text', and 'children'."
-                    );
-                }
-
-                Data = parsed;
-                message.textContent = "✅ Data assigned successfully!";
-                message.className = "success";
-                treeMaker(Data, {
-                    id: 'my_tree',
-                    card_click: function (element) {
-                        console.log('Clicked:', element.textContent);
-                    },
-                    link_width: '5px',
-                    link_color: '#000000'
-                });
-                console.log("Assigned Data:", Data); // For developer verification
-            } catch (err) {
-                message.textContent = `❌ Error: ${err.message}`;
-                message.className = "error";
-            }
-        });
+        let autoFit = true;
+        const FIT_PADDING = 40;
         let pathNumber = 1;
         let allLinks = [];
         let cardsCountLastRow = 0;
         const CARD_WIDTH_FOR_CONTAINER = 250;
         let strokeWidth = '5px';
         let strokeColor = '#000000';
+        let currentScale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startX, startY;
+
 
         class TreeNode {
             constructor(id, text, parent = null) {
@@ -443,15 +359,33 @@
             const container = document.getElementById(params.id);
             container.innerHTML = '';
 
+            // Create viewport and transform container
+            const viewport = document.createElement('div');
+            viewport.id = 'tree-viewport';
+            
+            const transformContainer = document.createElement('div');
+            transformContainer.id = 'tree-transform-container';
+            
+            viewport.appendChild(transformContainer);
+            container.appendChild(viewport);
+
+            viewport.addEventListener('wheel', handleZoom);
+            viewport.addEventListener('mousedown', startPan);
+            viewport.addEventListener('mousemove', handlePan);
+            viewport.addEventListener('mouseup', endPan);
+            viewport.addEventListener('mouseleave', endPan);
+
+            // Rest of the tree creation code (modified to use transformContainer)
             if (params.link_width !== undefined) strokeWidth = params.link_width;
             if (params.link_color !== undefined) strokeColor = params.link_color;
 
             pathNumber = 1;
             allLinks = [];
+            cardsCountLastRow = 0;
 
             const svgDiv = document.createElement('div');
             svgDiv.id = 'tree__svg-container';
-            container.appendChild(svgDiv);
+            transformContainer.appendChild(svgDiv);
 
             const svgContainer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             svgContainer.id = 'tree__svg-container__svg';
@@ -459,7 +393,7 @@
 
             const treeContainer = document.createElement('div');
             treeContainer.id = 'tree__container';
-            container.appendChild(treeContainer);
+            transformContainer.appendChild(treeContainer);
 
             const rootTreeNode = buildTreeStructure(tree);
 
@@ -479,6 +413,87 @@
                 svgDiv.setAttribute('width', '0');
                 connectCard();
             };
+            setTimeout(() => {
+                if (!autoFit) return;
+                
+                const treeContainer = document.getElementById('tree__container');
+                const viewport = document.getElementById('tree-viewport');
+                
+                const treeWidth = treeContainer.offsetWidth;
+                const treeHeight = treeContainer.offsetHeight;
+                const viewportWidth = viewport.offsetWidth;
+                const viewportHeight = viewport.offsetHeight;
+
+                const scaleX = (viewportWidth - FIT_PADDING) / treeWidth;
+                const scaleY = (viewportHeight - FIT_PADDING) / treeHeight;
+                currentScale = Math.min(scaleX, scaleY);
+
+                panX = (viewportWidth / (2 * currentScale)) - (treeWidth / 2);
+                panY = (viewportHeight / (2 * currentScale)) - (treeHeight / 2);
+
+                updateTransform();
+            }, 0);
+        }
+        function resetZoom() {
+            autoFit = true;
+            treeMaker(Data, {
+                id: 'my_tree',
+                card_click: function(element) { console.log('Clicked:', element.textContent) },
+                link_width: '5px',
+                link_color: 'white'
+            });
+        }
+        function toggleZoomMode() {
+            autoFit = !autoFit;
+            alert('Auto-fit mode: ' + (autoFit ? 'ON' : 'OFF'));
+        }
+        function handleZoom(e) {
+            e.preventDefault();
+            // Allow zoom even in autoFit mode
+            const zoomIntensity = 0.1;
+            const wheelDelta = e.deltaY < 0 ? 1 : -1;
+            const newScale = currentScale * (1 + wheelDelta * zoomIntensity);
+
+            // Limit scale range
+            if (newScale < 0.1 || newScale > 5) return;
+
+            // Calculate mouse position relative to viewport
+            const rect = e.target.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Adjust pan to keep mouse position stable
+            panX = mouseX - (mouseX - panX) * (newScale / currentScale);
+            panY = mouseY - (mouseY - panY) * (newScale / currentScale);
+
+            currentScale = newScale;
+            updateTransform();
+        }
+        function startPan(e) {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            isPanning = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+        }
+
+        function handlePan(e) {
+            if (!isPanning) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        }
+
+        function endPan() {
+            isPanning = false;
+        }
+
+        function updateTransform() {
+            const transformContainer = document.getElementById('tree-transform-container');
+            transformContainer.style.transform = `
+                translate(${panX}px, ${panY}px)
+                scale(${currentScale})
+            `;
         }
 
         function renderChildren(treeNode, from) {
@@ -522,40 +537,7 @@
             }
         }
 
-        function handleNodeClick(clickedCard) {
-            const nodeId = clickedCard.id.replace('card_', '');
-
-            const shouldActivate = nodeState.setActive(nodeId);
-
-            if (shouldActivate) {
-                activateNode(clickedCard, nodeId);
-            } else {
-                deactivateNode(clickedCard, nodeId);
-            }
-        }
-
-        function activateNode(node, nodeId) {
-            resetVisualStates();
-            document.getElementById(nodeId).classList.add("box");
-            node.classList.add('active');
-            animateNodeActivation(node);
-
-            const nodeData = findNodeInTree(rawTree, nodeId);
-            if (nodeData?.children) {
-                activateChildren(nodeData.children, nodeId);
-            }
-        }
-
-        function deactivateNode(node, nodeId) {
-            node.classList.remove('active');
-            animateNodeDeactivation(node);
-            document.getElementById(nodeId).classList.remove("box");
-
-            const nodeData = findNodeInTree(rawTree, nodeId);
-            if (nodeData?.children) {
-                deactivateChildrenRecursively(nodeData);
-            }
-        }
+    
 
         function activateChildren(children, parentId) {
             children.forEach(child => {
@@ -621,37 +603,7 @@
             });
         }
 
-        function animateNodeActivation(node) {
-            node.animate([
-                { transform: 'scale(1)' },
-                { transform: 'scale(1.1)' },
-                { transform: 'scale(1.05)' }
-            ], {
-                duration: 300,
-                easing: 'ease-out'
-            }).onfinish = () => {
-                node.style.transform = 'scale(1.05)';
-            };
-
-            node.animate([
-                { backgroundColor: 'Blue', color: 'black' },
-                { backgroundColor: '#2199e8', color: 'white' }
-            ], {
-                duration: 300,
-                fill: 'forwards'
-            });
-        }
-
-        function animateNodeDeactivation(node) {
-            node.animate([
-                { backgroundColor: '#2199e8', color: 'white' },
-                { backgroundColor: 'Blue', color: 'black' }
-            ], {
-                duration: 300,
-                fill: 'forwards'
-            });
-        }
-
+        
         function animatePathActivation(path) {
             path.classList.add('highlighted');
 
@@ -695,41 +647,6 @@
 
             return search(tree.skillset);
         }
-
-        function iterate(nodes, start, from) {
-            const svgContainer = document.getElementById('tree__svg-container__svg');
-            const treeContainer = document.createElement('div');
-            treeContainer.classList.add('tree__container__branch', `from_${from}`);
-            document.getElementById(from).after(treeContainer);
-
-            for (const node of nodes) {
-                const textCard = node.text || node.id;
-
-                if (!document.getElementById(`card_${node.id}`)) {
-                    treeContainer.innerHTML += `<div class="tree__container__step"><div class="tree__container__step__card" id="${node.id}"><p id="card_${node.id}" class="tree__container__step__card__p">${textCard}</p></div></div>`;
-                }
-
-                if ((from && !start) || start) {
-                    const newPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    newPath.id = "path" + pathNumber;
-                    newPath.setAttribute('stroke', strokeColor);
-                    newPath.setAttribute('fill', 'none');
-                    newPath.setAttribute('stroke-width', strokeWidth);
-                    newPath.setAttribute('data-from', from ? from.replace('tree__container__step__card__first', 'Root') : 'Root');
-                    newPath.setAttribute('data-to', node.id);
-                    svgContainer.appendChild(newPath);
-                    allLinks.push(['path' + pathNumber, from ? from : 'tree__container__step__card__first', node.id]);
-                    pathNumber++;
-                }
-
-                if (node.children && node.children.length > 0) {
-                    iterate(node.children, false, node.id);
-                } else {
-                    cardsCountLastRow++;
-                }
-            }
-        }
-
         function connectCard() {
             const svg = document.getElementById('tree__svg-container__svg');
             for (let i = 0; allLinks.length > i; i++) {
@@ -751,8 +668,8 @@
             if (svg.getAttribute("width") < (startX + stroke)) svg.setAttribute("width", (startX + stroke));
             if (svg.getAttribute("width") < (endX + stroke)) svg.setAttribute("width", (endX + stroke));
 
-            const deltaX = (endX - startX) * 0.15;
-            const deltaY = (endY - startY) * 0.15;
+            const deltaX = (endX - startX) * 0.35;
+            const deltaY = (endY - startY) * 0.25;
             const delta = deltaY < absolute(deltaX) ? deltaY : absolute(deltaX);
 
             let arc1 = 0;
@@ -767,7 +684,7 @@
                 `H${endX - delta * signum(deltaX)} A${delta} ${delta} 0 0 ${arc2} ${endX} ${startY + 3 * delta} V${endY}`
             );
         }
-
+      
         function connectElements(svg, path, startElem, endElem) {
             const svgContainer = document.getElementById('tree__svg-container');
 
@@ -787,6 +704,7 @@
             const endY = endElem.offsetTop - svgTop;
 
             drawPath(svg, path, startX, startY, endX, endY);
+            
         }
 
         treeMaker(Data, {
@@ -795,7 +713,7 @@
                 console.log('Clicked:', element.textContent);
             },
             link_width: '5px',
-            link_color: '#000000'
+            link_color: 'white'
         });
     </script>
 </body>
